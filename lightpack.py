@@ -46,7 +46,17 @@ class Lightpack(Light):
         self._api_key = api_key
         self._state = False
         self._profile = None
-        set_initial_status()
+        try:
+            telnet = telnetlib.Telnet(self._host, self._port)
+            telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
+            telnet.read_until(b"ok\n", timeout=0.2)
+            telnet.write(("getstatus\n").encode('ascii'))
+            self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
+            telnet.write(("getprofile\n").encode('ascii'))
+            self._profile = str(telnet.read_until(b"\n", timeout=0.2).strip()).replace('profile:', '').replace('\'', '')
+            telnet.close()
+        except IOError as error:
+            _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
         _LOGGER.error('lightpack profile set to : ' + self._profile)
 
     @property
@@ -76,19 +86,6 @@ class Lightpack(Light):
     def turn_off(self, **kwargs):
         """Instruct the light to turn off."""
         self.set_lightpack(False)
-
-    def set_initial_status():
-        try:
-            telnet = telnetlib.Telnet(self._host, self._port)
-            telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
-            telnet.read_until(b"ok\n", timeout=0.2)
-            telnet.write(("getstatus\n").encode('ascii'))
-            self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
-            telnet.write(("getprofile\n").encode('ascii'))
-            self._profile = str(telnet.read_until(b"\n", timeout=0.2).strip()).replace('profile:', '').replace('\'', '')
-            telnet.close()
-        except IOError as error:
-            _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
 
     def set_lightpack(self, enabled, profile = None):
         try:
