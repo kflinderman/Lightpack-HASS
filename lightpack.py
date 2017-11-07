@@ -63,7 +63,7 @@ class Lightpack(Light):
     @property
     def icon(self):
         """Return the icon to use in the frontend, if any."""
-        return 'mdi:television'
+        return 'mdi:television-guide'
 
     @property
     def is_on(self):
