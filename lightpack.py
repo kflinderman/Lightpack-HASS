@@ -45,19 +45,15 @@ class Lightpack(Light):
         self._port = port
         self._api_key = api_key
         self._state = False
-        self._profile = None
         try:
             telnet = telnetlib.Telnet(self._host, self._port)
             telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
             telnet.read_until(b"ok\n", timeout=0.2)
             telnet.write(("getstatus\n").encode('ascii'))
             self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
-            telnet.write(("getprofile\n").encode('ascii'))
-            self._profile = str(telnet.read_until(b"\n", timeout=0.2).strip()).replace('profile:', '').replace('\'', '')
             telnet.close()
         except IOError as error:
             _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
-        _LOGGER.error('lightpack profile set to : ' + self._profile)
 
     @property
     def name(self):
@@ -73,11 +69,6 @@ class Lightpack(Light):
     def is_on(self):
         """Return true if light is on."""
         return self._state
-
-    @property
-    def profile(self):
-        """Return the currently set profile"""
-        return self._profile
 
     def turn_on(self, **kwargs):
         """Instruct the light to turn on."""
@@ -99,7 +90,6 @@ class Lightpack(Light):
                 if (profile != None):
                     telnet.read_until(b"\n", timeout=0.2)
                     telnet.write(("setprofile:" + profile + "\n").encode('ascii'))
-                    self._profile = profile
                     _LOGGER.error('lightpack profile set to : ' + profile)
             else:
                 telnet.write(("setstatus:off\n").encode('ascii'))
