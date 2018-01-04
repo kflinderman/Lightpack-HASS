@@ -44,16 +44,7 @@ class Lightpack(Light):
         self._host = host
         self._port = port
         self._api_key = api_key
-        self._state = False
-        try:
-            telnet = telnetlib.Telnet(self._host, self._port)
-            telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
-            telnet.read_until(b"ok\n", timeout=0.2)
-            telnet.write(("getstatus\n").encode('ascii'))
-            self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
-            telnet.close()
-        except IOError as error:
-            _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
+        self._state = None
 
     @property
     def name(self):
@@ -68,6 +59,24 @@ class Lightpack(Light):
     @property
     def is_on(self):
         """Return true if light is on."""
+        try:
+            telnet = telnetlib.Telnet(self._host, self._port)
+            if (self._api_key != "ambibox"):
+                telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
+                telnet.read_until(b"ok\n", timeout=0.2)
+                telnet.write(("getstatus\n").encode('ascii'))
+                self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
+            else:
+                telnet.write(("\n").encode('ascii'))
+                telnet.write(("getstatus\n").encode('ascii'))
+                if (telnet.read_until(b"status:on\n", timeout=0.3)[60:-2] == b"status:on"):
+                    self._state = True
+                else:
+                    self._state = False
+            telnet.close()
+        except IOError as error:
+            _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
+
         return self._state
 
     def turn_on(self, **kwargs):
@@ -81,8 +90,9 @@ class Lightpack(Light):
     def set_lightpack(self, enabled, profile = None):
         try:
             telnet = telnetlib.Telnet(self._host, self._port)
-            telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
-            telnet.read_until(b"\n", timeout=0.2)
+            if (self._api_key != "ambibox"):
+                telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
+                telnet.read_until(b"\n", timeout=0.2)
             telnet.write(("lock\n").encode('ascii'))
             telnet.read_until(b"\n", timeout=0.2)
             if (enabled == True):
@@ -101,3 +111,7 @@ class Lightpack(Light):
         except IOError as error:
             _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
             return None
+            
+    def update(self):
+        """Periodically check to see if the light is on."""
+        self._state = self.is_on
