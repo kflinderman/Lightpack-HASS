@@ -17,7 +17,7 @@ ATTR_NAME = 'profile'
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
     vol.Required(CONF_PORT): cv.port,
-    vol.Required(CONF_API_KEY): cv.string
+    vol.Optional(CONF_API_KEY): cv.string
 })
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -61,22 +61,14 @@ class Lightpack(Light):
         """Return true if light is on."""
         try:
             telnet = telnetlib.Telnet(self._host, self._port)
-            if (self._api_key != "ambibox"):
+            if (self._api_key != None):
                 telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
                 telnet.read_until(b"ok\n", timeout=0.2)
-                telnet.write(("getstatus\n").encode('ascii'))
-                self._state = telnet.read_until(b"\n", timeout=0.2).strip() == b"status:on"
-            else:
-                telnet.write(("\n").encode('ascii'))
-                telnet.write(("getstatus\n").encode('ascii'))
-                if (telnet.read_until(b"status:on\n", timeout=0.3)[60:-2] == b"status:on"):
-                    self._state = True
-                else:
-                    self._state = False
+            telnet.write(("getstatus\n").encode('ascii'))
+            self._state = telnet.read_until(b"\n", timeout=0.2).strip().replace(b"status:", b"") == b"on"
             telnet.close()
         except IOError as error:
             _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
-
         return self._state
 
     def turn_on(self, **kwargs):
@@ -90,7 +82,7 @@ class Lightpack(Light):
     def set_lightpack(self, enabled, profile = None):
         try:
             telnet = telnetlib.Telnet(self._host, self._port)
-            if (self._api_key != "ambibox"):
+            if (self._api_key != None):
                 telnet.write(("apikey:" + self._api_key + "\n").encode('ascii'))
                 telnet.read_until(b"\n", timeout=0.2)
             telnet.write(("lock\n").encode('ascii'))
@@ -106,10 +98,11 @@ class Lightpack(Light):
             telnet.read_until(b"\n", timeout=0.2)
             telnet.write(("unlock\n").encode('ascii'))
             telnet.read_until(b"\n", timeout=0.2)
-            self._state = enabled
             telnet.close()
+            self._state = enabled
         except IOError as error:
             _LOGGER.error('Command "%s" failed with exception: %s', command, repr(error))
+            self._state = False
             return None
             
     def update(self):
