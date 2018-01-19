@@ -4,7 +4,7 @@ Lightpack component support for the Home Assistant platform. Interacts via a ser
 Takes in 3 parameters:
 - IP Address of machine running Prismatik
 - Port Number
-- API Key
+- API Key (leave blank if not using)
 
 The 'Enable Server' checkbox, the port number and the API key are all found in Prismatik's Experimental tab.
 
