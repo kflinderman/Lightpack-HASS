@@ -10,7 +10,7 @@ import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = 'lightpack'
+DOMAIN = 'light'
 ATTR_NAME = 'profile'
 
 # Validation of the user's configuration
